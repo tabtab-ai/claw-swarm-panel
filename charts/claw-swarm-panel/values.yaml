@@ -1,0 +1,103 @@
+# Default values for claw-swarm-panel.
+
+image:
+  repository: registry-vpc.cn-beijing.aliyuncs.com/agentic/claw-swarm-panel
+  pullPolicy: IfNotPresent
+  tag: v0.0.0-20260316-26737719
+
+imagePullSecrets: []
+nameOverride: "tabclaw"
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+
+# ── Apiserver Deployment ──────────────────────────────────────────────────────
+apiserver:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ── Service ───────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8088
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: "kong"
+  annotations: {}
+  hosts:
+    - host: claw-panel.example.com
+      paths:
+        - path: /claw
+          pathType: Prefix
+        - path: /auth
+          pathType: Prefix
+        - path: /users
+          pathType: Prefix
+  tls: []
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: health
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: health
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── Claw panel settings ───────────────────────────────────────────────────────
+claw:
+  server:
+    port: 8088
+    data_dir: /data/.claw-swarm
+
+  adapter:
+    type: "k8s"
+    k8s:
+      # Path to kubeconfig file. Empty = in-cluster or ~/.kube/config.
+      kubeconfig: ""
+      # Kubernetes namespace to manage claw instances in.
+      # Empty = inferred from POD_NAMESPACE env var at runtime.
+      namespace: ""
+
+  init:
+    litellm:
+      baseurl: "http://litellm.example.com"
+      master_key: "sk-..."
+      default_team: ""
+      default_max_budget: 1
+      default_budget_duration: ""   # e.g. "30d", "1h"; empty = no reset
+      models:
+        lite:
+          model_id: "tabtab-lite"
+        pro:
+          model_id: "tabtab-pro"

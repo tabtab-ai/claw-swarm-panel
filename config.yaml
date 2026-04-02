@@ -1,0 +1,30 @@
+# ── API Server ────────────────────────────────────────────────────────────────
+server:
+  port: 8088
+  data_dir: ".claw-swarm"
+
+# ── Adapter backend ──────────────────────────────────────────────────────────
+adapter:
+  type: "k8s"
+  k8s:
+    # Path to kubeconfig file. Resolution order:
+    #   1. This field (explicit path)
+    #   2. KUBECONFIG env var or ~/.kube/config
+    #   3. In-cluster config
+    kubeconfig: ""
+    # Kubernetes namespace to manage claw instances in.
+    # Falls back to POD_NAMESPACE env var, then "default".
+    namespace: ""
+
+init:
+  # ── LiteLLM Integration ───────────────────────────────────────────────────────
+  # litellm:
+  #   baseurl: "http://litellm.10.20.51.23.nip.io"
+  #   master_key: "sk-..."
+  #   default_team: ""
+  #   default_max_budget: 1
+  #   models:
+  #     lite:
+  #       model_id: "tabtab-lite"
+  #     pro:
+  #       model_id: "tabtab-pro"

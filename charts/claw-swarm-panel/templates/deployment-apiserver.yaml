@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "claw-swarm-panel.apiserverName" . }}
+  labels:
+    {{- include "claw-swarm-panel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: apiserver
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.apiserver.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "claw-swarm-panel.apiserverSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "claw-swarm-panel.labels" . | nindent 8 }}
+        app.kubernetes.io/component: apiserver
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "claw-swarm-panel.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      enableServiceLinks: false
+      containers:
+        - name: apiserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /start.sh
+          env:
+          - name: MODE
+            value: "apiserver"
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          args:
+          - --config=/tmp/config.yaml
+          - -zap-log-level=5
+          ports:
+          - containerPort: {{ .Values.service.port }}
+            name: server
+          - containerPort: 80
+            name: webui
+          resources:
+            {{- toYaml .Values.apiserver.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+          - name: {{ .Release.Name }}-claw-config
+            mountPath: /tmp/config.yaml
+            subPath: config.yaml
+          {{- with .Values.volumeMounts }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+      volumes:
+      - name: {{ .Release.Name }}-claw-config
+        configMap:
+          name: {{ .Release.Name }}-claw-config
+          items:
+          - key: config.yaml
+            path: config.yaml
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
