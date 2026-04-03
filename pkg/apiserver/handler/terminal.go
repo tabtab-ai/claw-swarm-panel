@@ -73,7 +73,11 @@ func (h *ClawHandler) TerminalInstance(w http.ResponseWriter, r *http.Request) {
 		klog.Errorf("terminal: websocket upgrade error for %s: %v", name, err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			klog.V(4).Infof("terminal: websocket close error for %s: %v", name, err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -86,7 +90,11 @@ func (h *ClawHandler) TerminalInstance(w http.ResponseWriter, r *http.Request) {
 
 	// Read WebSocket messages and dispatch to stdin pipe or resize channel.
 	go func() {
-		defer pw.Close()
+		defer func() {
+			if err := pw.Close(); err != nil {
+				klog.V(4).Infof("terminal: pipe close error for %s: %v", name, err)
+			}
+		}()
 		defer close(resizeCh)
 		for {
 			msgType, msg, err := conn.ReadMessage()

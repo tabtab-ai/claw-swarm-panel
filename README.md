@@ -103,134 +103,35 @@ The biggest challenge for SMBs adopting OpenClaw is not technical capability —
 
 ### Prerequisites
 
-Deploy `claw-swarm-operator` into your Kubernetes cluster first — it manages the instance pool that this panel controls.
+- Golang 1.20+
+- Node.js 18+
+- A Kubernetes cluster with [`claw-swarm-operator`](https://gitlab.botnow.cn/agentic/claw-swarm-operator) deployed
 
 ### Run locally
+
+> The API server connects to the cluster using your kubeconfig (`~/.kube/config` or Environment Variable `KUBECONFIG`).
 
 ```bash
 make run          # start API server (port 8088)
 make run-webui    # start Web UI dev server (port 5173)
 ```
 
+Open `http://localhost:5173` in your browser. The default admin account is `admin` / `happyclaw` — **change this password after first login.**
+
 ### Build
 
 ```bash
-make build        # outputs: bin/apiserver
-make build-webui  # outputs: webui/dist/
+make build        # output: bin/apiserver
+make build-webui  # output: webui/dist/
 ```
 
 ---
 
-## Configuration
-
-All settings are read from `config.yaml` (pass via `--config`).
-
-```yaml
-# ── API Server ─────────────────────────────────────────────────────────────────
-server:
-  port: 8088
-  data_dir: ".claw-swarm"        # SQLite DB + JWT secret location
-
-# ── Adapter backend ────────────────────────────────────────────────────────────
-adapter:
-  type: "k8s"
-  k8s:
-    kubeconfig: ""               # explicit path; empty = ~/.kube/config or in-cluster
-    namespace: ""                # falls back to POD_NAMESPACE env var
-
-# ── LiteLLM Integration ────────────────────────────────────────────────────────
-init:
-  litellm:
-    baseurl: "http://litellm.example.com"
-    master_key: "sk-..."
-    default_team: ""
-    default_max_budget: 1
-    models:
-      lite:
-        model_id: "tabtab-lite"
-      pro:
-        model_id: "tabtab-pro"
-```
-
----
-
-## API Reference
-
-All endpoints require `Authorization: Bearer <jwt>` or `X-API-Key: claw_...` except `/auth/login`.
-
-### Authentication
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/auth/login` | Login — returns JWT (24 h) |
-| `GET`  | `/auth/me` | Current user profile |
-| `POST` | `/auth/change-password` | Change password |
-| `GET`  | `/auth/api-secret` | View API secret |
-| `POST` | `/auth/api-secret/regenerate` | Regenerate API secret |
-
-### Instance Lifecycle (admin only for writes)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET`  | `/claw/instances` | List all instances (`?occupied=true\|false`) |
-| `GET`  | `/claw/used` | List allocated instances |
-| `GET`  | `/claw/token` | Get gateway token (`?name=<name>`) |
-| `POST` | `/claw/alloc` | Allocate instance to user |
-| `POST` | `/claw/free` | Free (delete) instance |
-| `POST` | `/claw/pause` | Pause instance (supports `delay_minutes`) |
-| `POST` | `/claw/resume` | Resume paused instance |
-
-**Alloc:**
-```json
-{ "user_id": "alice", "model_type": "lite" }
-```
-
-**Free / Resume:**
-```json
-{ "name": "claw-a1b2c3d4" }
-```
-
-**Pause with delay:**
-```json
-{ "name": "claw-a1b2c3d4", "delay_minutes": 10 }
-```
-
-**Instance response:**
-```json
-{
-  "name": "claw-a1b2c3d4",
-  "user_id": "alice",
-  "state": "running",
-  "alloc_status": "allocated",
-  "access_url": "https://claw-claw-a1b2c3d4.example.com/overview",
-  "token": "sk-...",
-  "resources": {
-    "cpu_request": "250m", "cpu_limit": "1",
-    "memory_request": "512Mi", "memory_limit": "2Gi"
-  },
-  "created_at": "2026-03-25T10:00:00Z"
-}
-```
-
-**States:** `running` | `pending` | `paused` | `deleting`
-
-**Alloc status:** `allocating` (model config in progress) → `allocated` (ready to use)
-
-### User Management (admin only)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET`    | `/users`     | List all panel users |
-| `POST`   | `/users`     | Create user (username, password, role) |
-| `DELETE` | `/users/:id` | Delete user |
-
----
-
-## Deployment (Helm)
+## Production Deployment (Helm)
 
 **Install from OCI registry (recommended):**
 
-> The following parameters must be adjusted to match your environment:
+> Adjust the following parameters to match your environment:
 >
 > | Parameter | Description |
 > |-----------|-------------|
@@ -288,59 +189,90 @@ claw:
 
 ```bash
 make helm-lint     # validate
-make helm-package  # package to .tgz
+make helm-package  # package as .tgz
 make helm-push     # push to OCI registry
 ```
 
 ---
 
-## Integration
+## Configuration
 
-Connect Claw Swarm Panel to external systems via `X-API-Key` authentication:
+All settings are read from `config.yaml` (pass via `--config`).
 
-| System | Trigger | API Call |
-|--------|---------|---------|
-| HR / Onboarding | Employee joins | `POST /claw/alloc` |
-| Offboarding | Employee leaves | `POST /claw/free` |
-| Slack / Teams bot | User's first conversation | `POST /claw/alloc` (idempotent) |
-| Monitoring | Periodic health check | `GET /claw/instances` |
+```yaml
+# ── API Server ─────────────────────────────────────────────────────────────────
+server:
+  port: 8088
+  data_dir: ".claw-swarm"        # SQLite DB + JWT secret location
+
+# ── Adapter backend ────────────────────────────────────────────────────────────
+adapter:
+  type: "k8s" # only "k8s" is supported today; designed for future extensibility
+  k8s:
+    kubeconfig: ""               # explicit path; empty = ~/.kube/config or in-cluster
+    namespace: ""                # falls back to POD_NAMESPACE env var
+
+# ── LiteLLM Integration (optional) ─────────────────────────────────────────────
+init:
+  litellm:
+    baseurl: "http://litellm.example.com"
+    master_key: "sk-..."
+    default_team: ""
+    default_max_budget: 1
+    models:
+      lite:
+        model_id: "tabtab-lite"
+      pro:
+        model_id: "tabtab-pro"
+```
 
 ---
 
-## Make Targets
+## API Reference
+
+See [docs/api.md](docs/api.md) for detailed endpoint specifications.
+
+---
+
+## System Integration
+
+Use `X-API-Key` authentication to integrate Claw Swarm Panel with external systems:
+
+| System | Trigger | API Call |
+|--------|---------|----------|
+| HR / onboarding system | Employee joins | `POST /claw/alloc` |
+| Offboarding workflow | Employee leaves | `POST /claw/free` |
+| Slack / Teams bot | User starts first session | `POST /claw/alloc` (idempotent) |
+| Monitoring system | Periodic health check | `GET /claw/instances` |
+
+---
+
+## Make Commands
 
 ```
 Development
-  fmt / vet       Format and vet Go code
+  fmt / vet       Format and static analysis
   lint            Run golangci-lint
   lint-fix        Run golangci-lint with auto-fix
 
 Frontend
   install-webui   Install webui dependencies (pnpm)
   run-webui       Start Vite dev server (:5173)
-  build-webui     Build webui for production
+  build-webui     Build production webui
 
 Build
   build           Build apiserver binary (bin/apiserver)
-  run             Run apiserver from host
+  run             Run apiserver locally
 
 Docker
   docker-build    Build container image (IMG)
   docker-push     Push container image (IMG)
 
 Helm
-  helm-lint       Lint helm chart
+  helm-lint       Validate helm chart
   helm-package    Package helm chart
   helm-push       Push chart to OCI registry
 ```
-
----
-
-## Default Credentials
-
-| Username | Password | Note |
-|----------|----------|------|
-| `admin` | `happyclaw` | Must be changed on first login |
 
 ---
 

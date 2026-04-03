@@ -36,7 +36,7 @@
 | **员工数据完全隔离** | 每人独占一个工作空间容器，数据永不交叉 |
 | **API 密钥按人管控** | 对接 LiteLLM，自动为每位员工生成独立密钥，离职即回收 |
 | **500ms 内完成分配** | 预热实例池常备就绪，分配 API 响应 < 500ms，无冷启动等待 |
-| **自动暂停与恢复** | 闲置实例自动缩容至零，工作日早晨一键恢复，数据不丢失 |
+| **自动暂停与恢复** | 闲置实例自动缩容至零，按需恢复，数据不丢失 |
 | **IT 可自主运营** | Web 管理面板覆盖全部日常操作，无需掌握底层技术 |
 | **系统集成友好** | REST API + API Secret，可对接 HR 系统、钉钉/飞书机器人、SSO 平台 |
 
@@ -103,14 +103,20 @@
 
 ### 前提条件
 
-先将 `claw-swarm-operator` 部署到 Kubernetes 集群 —— 它负责管理本面板所操作的实例池。
+- Golang 1.20+
+- Node.js 18+
+- 已部署 [`claw-swarm-operator`](https://gitlab.botnow.cn/agentic/claw-swarm-operator) 的 Kubernetes 集群
 
 ### 本地运行
+
+> API 服务通过 kubeconfig（`~/.kube/config` 或 `KUBECONFIG` 环境变量）连接集群。
 
 ```bash
 make run          # 启动 API 服务（端口 8088）
 make run-webui    # 启动 Web UI 开发服务器（端口 5173）
 ```
+
+浏览器打开 `http://localhost:5173` 访问控制台。默认管理员账号为 `admin` / `happyclaw`，**首次登录后请立即修改密码。**
 
 ### 构建
 
@@ -118,111 +124,6 @@ make run-webui    # 启动 Web UI 开发服务器（端口 5173）
 make build        # 输出：bin/apiserver
 make build-webui  # 输出：webui/dist/
 ```
-
----
-
-## 配置
-
-所有配置从 `config.yaml` 读取（通过 `--config` 指定路径）。
-
-```yaml
-# ── API Server ─────────────────────────────────────────────────────────────────
-server:
-  port: 8088
-  data_dir: ".claw-swarm"        # SQLite 数据库 + JWT 密钥目录
-
-# ── Adapter 后端 ───────────────────────────────────────────────────────────────
-adapter:
-  type: "k8s"
-  k8s:
-    kubeconfig: ""               # 显式路径；空 = ~/.kube/config 或 in-cluster
-    namespace: ""                # 回退至 POD_NAMESPACE 环境变量
-
-# ── LiteLLM 集成 ───────────────────────────────────────────────────────────────
-init:
-  litellm:
-    baseurl: "http://litellm.example.com"
-    master_key: "sk-..."
-    default_team: ""
-    default_max_budget: 1
-    models:
-      lite:
-        model_id: "tabtab-lite"
-      pro:
-        model_id: "tabtab-pro"
-```
-
----
-
-## API 参考
-
-除 `/auth/login` 外，所有接口均需 `Authorization: Bearer <jwt>` 或 `X-API-Key: claw_...`。
-
-### 认证
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `POST` | `/auth/login` | 登录，返回 JWT（有效期 24h） |
-| `GET`  | `/auth/me` | 当前用户信息 |
-| `POST` | `/auth/change-password` | 修改密码 |
-| `GET`  | `/auth/api-secret` | 查看 API Secret |
-| `POST` | `/auth/api-secret/regenerate` | 重新生成 API Secret |
-
-### 实例生命周期（写操作仅限 admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `GET`  | `/claw/instances` | 列出所有实例（`?occupied=true\|false`） |
-| `GET`  | `/claw/used` | 列出已分配实例 |
-| `GET`  | `/claw/token` | 获取网关令牌（`?name=<name>`） |
-| `POST` | `/claw/alloc` | 为用户分配实例 |
-| `POST` | `/claw/free` | 释放（删除）实例 |
-| `POST` | `/claw/pause` | 暂停实例（支持 `delay_minutes`） |
-| `POST` | `/claw/resume` | 恢复已暂停实例 |
-
-**分配：**
-```json
-{ "user_id": "alice", "model_type": "lite" }
-```
-
-**释放 / 恢复：**
-```json
-{ "name": "claw-a1b2c3d4" }
-```
-
-**延迟暂停：**
-```json
-{ "name": "claw-a1b2c3d4", "delay_minutes": 10 }
-```
-
-**实例响应示例：**
-```json
-{
-  "name": "claw-a1b2c3d4",
-  "user_id": "alice",
-  "state": "running",
-  "alloc_status": "allocated",
-  "access_url": "https://claw-claw-a1b2c3d4.example.com/overview",
-  "token": "sk-...",
-  "resources": {
-    "cpu_request": "250m", "cpu_limit": "1",
-    "memory_request": "512Mi", "memory_limit": "2Gi"
-  },
-  "created_at": "2026-03-25T10:00:00Z"
-}
-```
-
-**实例状态：** `running` | `pending` | `paused` | `deleting`
-
-**分配状态：** `allocating`（模型配置进行中）→ `allocated`（可正常使用）
-
-### 用户管理（仅限 admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `GET`    | `/users`     | 列出所有面板用户 |
-| `POST`   | `/users`     | 创建用户（用户名、密码、角色） |
-| `DELETE` | `/users/:id` | 删除用户 |
 
 ---
 
@@ -294,6 +195,45 @@ make helm-push     # 推送到 OCI 镜像仓库
 
 ---
 
+## 配置
+
+所有配置从 `config.yaml` 读取（通过 `--config` 指定路径）。
+
+```yaml
+# ── API Server ─────────────────────────────────────────────────────────────────
+server:
+  port: 8088
+  data_dir: ".claw-swarm"        # SQLite 数据库 + JWT 密钥目录
+
+# ── Adapter 后端 ───────────────────────────────────────────────────────────────
+adapter:
+  type: "k8s"                    # 目前仅支持 "k8s"，已为扩展预留接口
+  k8s:
+    kubeconfig: ""               # 显式路径；空 = ~/.kube/config 或 in-cluster
+    namespace: ""                # 回退至 POD_NAMESPACE 环境变量
+
+# ── LiteLLM 集成（可选）────────────────────────────────────────────────────────
+init:
+  litellm:
+    baseurl: "http://litellm.example.com"
+    master_key: "sk-..."
+    default_team: ""
+    default_max_budget: 1
+    models:
+      lite:
+        model_id: "tabtab-lite"
+      pro:
+        model_id: "tabtab-pro"
+```
+
+---
+
+## API 参考
+
+详细接口说明见 [docs/api.md](docs/api.md)。
+
+---
+
 ## 系统集成
 
 通过 `X-API-Key` 认证将 Claw Swarm Panel 对接外部系统：
@@ -333,14 +273,6 @@ Helm
   helm-package    打包 helm chart
   helm-push       推送 chart 到 OCI 仓库
 ```
-
----
-
-## 默认凭据
-
-| 用户名 | 密码 | 说明 |
-|--------|------|------|
-| `admin` | `happyclaw` | 首次登录必须修改密码 |
 
 ---
 

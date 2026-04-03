@@ -40,5 +40,5 @@ jobs:
 
       - name: Push Helm chart to OCI registry
         run: |
-          helm push claw-swarm-panel-${{ steps.chart_version.outputs.version }}.tgz \
-            oci://registry-1.docker.io/${{ secrets.DOCKERHUB_USERNAME }}/claw-swarm-panel-chart
+          helm push claw-swarm-panel-chart-${{ steps.chart_version.outputs.version }}.tgz \
+            oci://registry-1.docker.io/${{ secrets.DOCKERHUB_USERNAME }}
