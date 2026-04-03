@@ -228,6 +228,28 @@ init:
 
 ## 部署（Helm）
 
+**从 OCI 仓库安装（推荐）：**
+
+> 以下参数需根据实际环境修改：
+>
+> | 参数 | 说明 |
+> |------|------|
+> | `ingress.hosts[0].host` | 面板 Web UI 和 API 对外暴露的域名 |
+> | `ingress.className` | 集群 Ingress 控制器对应的 class 名称（如 `kong`、`nginx`） |
+> | `claw.init.litellm.baseurl` | LiteLLM 服务地址，用于 AI 模型路由 |
+> | `claw.init.litellm.master_key` | LiteLLM master key |
+
+```bash
+helm install claw-swarm-panel oci://registry-1.docker.io/tabtabai/claw-swarm-panel-chart \
+  --namespace tabclaw --create-namespace \
+  --set ingress.hosts[0].host=claw-panel.example.com \
+  --set ingress.className=kong \
+  --set claw.init.litellm.baseurl=http://litellm.example.com \
+  --set claw.init.litellm.master_key=sk-...
+```
+
+**从本地源码安装：**
+
 ```bash
 helm install claw-swarm-panel charts/claw-swarm-panel \
   --namespace tabclaw --create-namespace \

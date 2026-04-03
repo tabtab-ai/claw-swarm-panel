@@ -228,6 +228,28 @@ All endpoints require `Authorization: Bearer <jwt>` or `X-API-Key: claw_...` exc
 
 ## Deployment (Helm)
 
+**Install from OCI registry (recommended):**
+
+> The following parameters must be adjusted to match your environment:
+>
+> | Parameter | Description |
+> |-----------|-------------|
+> | `ingress.hosts[0].host` | Domain where the panel Web UI and API will be exposed |
+> | `ingress.className` | Ingress class matching your cluster's ingress controller (e.g. `kong`, `nginx`) |
+> | `claw.init.litellm.baseurl` | LiteLLM service URL for AI model routing |
+> | `claw.init.litellm.master_key` | LiteLLM master key |
+
+```bash
+helm install claw-swarm-panel oci://registry-1.docker.io/tabtabai/claw-swarm-panel-chart \
+  --namespace tabclaw --create-namespace \
+  --set ingress.hosts[0].host=claw-panel.example.com \
+  --set ingress.className=kong \
+  --set claw.init.litellm.baseurl=http://litellm.example.com \
+  --set claw.init.litellm.master_key=sk-...
+```
+
+**Install from local source:**
+
 ```bash
 helm install claw-swarm-panel charts/claw-swarm-panel \
   --namespace tabclaw --create-namespace \

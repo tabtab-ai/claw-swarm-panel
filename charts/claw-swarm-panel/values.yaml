@@ -1,9 +1,9 @@
 # Default values for claw-swarm-panel.
 
 image:
-  repository: registry-vpc.cn-beijing.aliyuncs.com/agentic/claw-swarm-panel
+  repository: tabtabai/claw-swarm-panel
   pullPolicy: IfNotPresent
-  tag: v0.0.0-20260316-26737719
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: "tabclaw"

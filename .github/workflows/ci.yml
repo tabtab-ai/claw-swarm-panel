@@ -6,6 +6,8 @@ on:
   push:
     branches: ["main"]
     tags: ["v*"]
+    paths-ignore:
+      - "charts/**"
 
 jobs:
   # ── Preflight: lint check on PRs (skip WIP/Draft) ───────────────────────────
@@ -67,3 +69,4 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/claw-swarm-panel:${{ steps.meta.outputs.image_tag }}
             ${{ secrets.DOCKERHUB_USERNAME }}/claw-swarm-panel:${{ steps.meta.outputs.date }}
             ${{ secrets.DOCKERHUB_USERNAME }}/claw-swarm-panel:${{ steps.meta.outputs.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/claw-swarm-panel:latest
