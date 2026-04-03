@@ -12,6 +12,8 @@
 > 账号：`test` / `happyclaw`
 > **⚠️ 注意：** 演示实例为所有访客共享 —— **请勿在 OpenClaw 工作空间内输入任何真实凭据或敏感数据。**
 
+> **想体验托管版 OpenClaw？** 前往 [tabtabai.com/open-claw](https://tabtabai.com/open-claw) 申请早期体验资格
+
 > **项目拆分说明：** 本仓库只包含**管理面板**（API Server + Web UI）。
 > Kubernetes 适配器与实例生命周期控制器已独立为单独项目：
 > **[claw-swarm-operator](https://gitlab.botnow.cn/agentic/claw-swarm-operator)** —— 请先将其部署到集群中。

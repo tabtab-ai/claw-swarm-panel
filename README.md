@@ -12,6 +12,8 @@ Give every employee a dedicated, isolated AI coding workspace — allocated in u
 > Login with `test` / `happyclaw`
 > **⚠️ Warning:** The demo instance is shared among all visitors — **do not enter any real credentials or sensitive data inside the OpenClaw workspace.**
 
+> **Looking for a hosted OpenClaw experience?** Apply for early access at [tabtabai.com/open-claw](https://tabtabai.com/open-claw)
+
 > **Project split notice:** This repository ships only the **management panel** (API server + Web UI).
 > The Kubernetes adapter and instance lifecycle controller live in a separate project:
 > **[claw-swarm-operator](https://gitlab.botnow.cn/agentic/claw-swarm-operator)** — deploy it into your cluster first.
