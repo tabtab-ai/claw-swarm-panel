@@ -8,6 +8,10 @@
 
 Give every employee a dedicated, isolated AI coding workspace — allocated in under 500 ms, with automatic resource recycling and zero ops overhead.
 
+> **Live demo:** [https://claw-community-panel.botnow.cn](https://claw-community-panel.botnow.cn)
+> Login with `test` / `happyclaw`
+> **⚠️ Warning:** The demo instance is shared among all visitors — **do not enter any real credentials or sensitive data inside the OpenClaw workspace.**
+
 > **Project split notice:** This repository ships only the **management panel** (API server + Web UI).
 > The Kubernetes adapter and instance lifecycle controller live in a separate project:
 > **[claw-swarm-operator](https://gitlab.botnow.cn/agentic/claw-swarm-operator)** — deploy it into your cluster first.

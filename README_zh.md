@@ -8,6 +8,10 @@
 
 让每位员工拥有独立隔离的 AI 编程工作空间，500 毫秒内完成分配，自动回收闲置资源，零运维负担。
 
+> **在线演示：** [https://claw-community-panel.botnow.cn](https://claw-community-panel.botnow.cn)
+> 账号：`test` / `happyclaw`
+> **⚠️ 注意：** 演示实例为所有访客共享 —— **请勿在 OpenClaw 工作空间内输入任何真实凭据或敏感数据。**
+
 > **项目拆分说明：** 本仓库只包含**管理面板**（API Server + Web UI）。
 > Kubernetes 适配器与实例生命周期控制器已独立为单独项目：
 > **[claw-swarm-operator](https://gitlab.botnow.cn/agentic/claw-swarm-operator)** —— 请先将其部署到集群中。
